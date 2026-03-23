@@ -1,0 +1,125 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    # Only expose to localhost if host machine needs access. 
+    # n8n can access it internally via http://ollama:11434
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ./ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+        limits:
+          cpus: '6'
+          memory: 12G
+    networks:
+      - ai_network
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+      # - OLLAMA_HOST=0.0.0.0 # Default is 127.0.0.1 inside container? standard image listens on all usually.
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_AUTH_USER}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_AUTH_PASSWORD}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      # Host security
+      - N8N_HOST=127.0.0.1
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      ollama:
+        condition: service_started
+    networks:
+      - ai_network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    networks:
+      - ai_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  qdrant:
+    image: qdrant/qdrant
+    container_name: qdrant
+    restart: unless-stopped
+    volumes:
+      - ./qdrant_data:/qdrant/storage
+    networks:
+      - ai_network
+    environment:
+      - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+
+  ai-agent-team:
+    build:
+      context: ./dev_crew
+      dockerfile: Dockerfile
+    container_name: ai_agent_team
+    hostname: ai-agent-team
+    image: ai-agent-team:latest
+    volumes:
+      - ./dev_crew/app:/app
+      - ./dev_crew/project_state:/app/project_state
+    env_file:
+      - .env
+    stdin_open: true
+    tty: true
+
+networks:
+  ai_network:
+    driver: bridge

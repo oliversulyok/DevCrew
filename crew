@@ -1,0 +1,12 @@
+#!/bin/bash
+# Run the AI Development Crew using the local virtual environment
+# This script should be executed from the Automation project root.
+
+SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+cd "$SCRIPTPATH"
+
+if [ -f ".venv/bin/activate" ]; then
+    ./.venv/bin/python dev_crew/app/main.py "$@"
+else
+    python3 dev_crew/app/main.py "$@"
+fi
