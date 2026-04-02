@@ -18,7 +18,7 @@ print(os.getcwd())
 architekt_llm = ChatOpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=os.getenv("OPENROUTER_API_KEY"),
-    model_name="openrouter/arcee-ai/trinity-large-preview:free",
+    model_name="openrouter/qwen/qwen3.6-plus-preview:free",
     max_retries=10, # Több újrapróbálkozás hálózati hiba vagy limit esetén
 )
 
@@ -36,7 +36,7 @@ kodolo_llm = ChatOpenAI(
 olcso_llm = ChatOpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=os.getenv("OPENROUTER_API_KEY"),
-    model="openrouter/stepfun/step-3.5-flash:free", # Példa ingyenes modellre
+    model="openrouter/nvidia/nemotron-3-nano-30b-a3b:free", # Példa ingyenes modellre
     max_retries=10,
 )
 
@@ -102,8 +102,15 @@ def check_specifications(project_dir):
         for f in spec_files:
             print(f" - {f}")
 
-    start_dev = input("\nMehet a fejlesztés (kódgenerálás)? (y/n) [Alapértelmezett: n]: ").lower() == 'y'
-    return start_dev
+    print("\nMit tegyünk?")
+    print(" [y] Mehet a fejlesztés (kódgenerálás)")
+    print(" [n] Csak a specifikációk generálása / frissítése")
+    print(" [i] Iteratív módosítás (Visszajelzés és újratervezés)")
+    print(" [q] Kilépés")
+    
+    choice = input("\nVálasztás [n]: ").lower()
+    if not choice: choice = 'n'
+    return choice
 
 def load_last_context(project_dir):
     """Beolvassa a generált fájlok tartalmát a spec, src, test (stb.) mappákból."""
@@ -357,20 +364,78 @@ def run_ai_agency():
     """Fő vezérlő folyamat."""
     projekt_cel, is_rc, project_dir = get_project_config()
     
-    run_dev = check_specifications(project_dir)
-    
-    # Utolsó állapot betöltése kontextusnak
-    extra_context = load_last_context(project_dir)
-    if extra_context:
-        print("ℹ️ Korábbi kontextus betöltve az ágensek részére.")
+    while True:
+        choice = check_specifications(project_dir)
+        
+        if choice == 'q':
+            print("👋 Viszlát!")
+            break
+            
+        run_dev = (choice == 'y')
+        
+        # Ha iterációt kértek, kérünk be extra visszajelzést
+        if choice == 'i':
+            spec_dir = os.path.join(project_dir, "docs")
+            available_files = []
+            if os.path.exists(spec_dir):
+                available_files = [f for f in os.listdir(spec_dir) if f.endswith('.md') or f.endswith('.json')]
+            
+            print("\n--- Iteratív visszajelzés gyűjtése ---")
+            if available_files:
+                print("Segítségül az eddigi fájlok:")
+                for f in available_files:
+                    print(f" - {f}")
+                print("\nTipp: Ha egy konkrét fájlhoz írsz, említsd meg a nevét (pl. 'architektura: ...')")
+            
+            print("Írd be a módosítási kéréseidet! (Üres sor a befejezéshez)")
+            
+            feedbacks = []
+            while True:
+                fb = input(" > ").strip()
+                if not fb:
+                    break
+                
+                # Próbáljuk kitalálni a kontextust (melyik fájlhoz tartozik)
+                context_tag = ""
+                fb_lower = fb.lower()
+                for f in available_files:
+                    fname_base = f.split('.')[0].lower()
+                    # Ha a fájlnév szerepel a szövegben vagy a visszajelzés elején van : jel után
+                    if fname_base in fb_lower:
+                        context_tag = f" [Kontextus: docs/{f}]"
+                        break
+                
+                feedbacks.append(f"{context_tag} {fb}")
+            
+            if feedbacks:
+                feedback_str = "\n".join(feedbacks)
+                projekt_cel += f"\n\n--- FELHASZNÁLÓI VISSZAJELZÉS (Iteráció - {datetime.now().strftime('%H:%M:%S')}) ---\n{feedback_str}"
+                
+                # Mentés az állapotba is
+                last_goal_path = "project_state/last_goal.txt"
+                with open(last_goal_path, "w", encoding="utf-8") as f:
+                    f.write(projekt_cel)
+            else:
+                print("ℹ️ Nem érkezett visszajelzés, folytatás vátloztatás nélkül.")
 
-    agents = define_agents()
-    tasks_list = create_tasks(agents, projekt_cel, is_rc, extra_context, run_dev)
-    
-    eredmeny = execute_agency(agents, tasks_list)
-    
-    saved_files = save_files(project_dir, eredmeny)
-    save_state(project_dir, projekt_cel, is_rc, saved_files)
+        # Utolsó állapot betöltése kontextusnak
+        extra_context = load_last_context(project_dir)
+        if extra_context:
+            print("ℹ️ Korábbi kontextus betöltve az ágensek részére.")
+
+        agents = define_agents()
+        tasks_list = create_tasks(agents, projekt_cel, is_rc, extra_context, run_dev)
+        
+        eredmeny = execute_agency(agents, tasks_list)
+        
+        saved_files = save_files(project_dir, eredmeny)
+        save_state(project_dir, projekt_cel, is_rc, saved_files)
+        
+        if run_dev:
+            print("\n🎉 Fejlesztési szakasz befejeződött.")
+            break
+        else:
+            print("\n✅ Specifikációs kör kész. Most átnézheted a fájlokat, majd újabb kört indíthatsz vagy mehet a fejlesztés.")
 
 
 if __name__ == "__main__":
