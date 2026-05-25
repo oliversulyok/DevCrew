@@ -1,13 +1,17 @@
 from crewai import Agent
-from dev_crew.app.config.models import architekt_llm, kodolo_llm, olcso_llm
+from config.models import architekt_llm, kodolo_llm, olcso_llm
+from utils.tools import ProjectSearchTool
 
-def define_agents():
+def define_agents(project_dir):
     """Létrehozza a munkában résztvevő ágenseket."""
+    search_tool = ProjectSearchTool(project_dir=project_dir)
+
     po = Agent(
         role=f'Product Owner ({architekt_llm.model_name})',
         goal='Prioritizáld a feladatokat és válaszd ki a megfelelő végrehajtót.',
         backstory='Tapasztalt vezető vagy, aki ügyel a kvótákra és az üzleti célokra.',
         llm=architekt_llm,
+        tools=[search_tool],
         verbose=True,
         max_rpm=3
     )
@@ -17,6 +21,7 @@ def define_agents():
         goal='Minimalizáld a feladatleírások token-számát a lényeg megtartásával.',
         backstory='A minimalizmus nagymestere vagy. Technikai, tömör utasításokat gyártasz.',
         llm=olcso_llm,
+        tools=[search_tool],
         verbose=True,
         max_rpm=5
     )
@@ -26,6 +31,7 @@ def define_agents():
         goal='Írj tiszta, működő kódot az eredeti cél és a prompt alapján.',
         backstory='Profi kódoló vagy, aki követi a best practice-eket.',
         llm=kodolo_llm,
+        tools=[search_tool],
         verbose=True,
         max_rpm=2
     )
@@ -35,6 +41,7 @@ def define_agents():
         goal='Teszteld a kódot (Unit, E2E, UAT) és keress hibákat.',
         backstory='Alapos és szigorú vagy. Csak a tökéletes kód mehet át.',
         llm=kodolo_llm,
+        tools=[search_tool],
         verbose=True,
         max_rpm=2
     )
@@ -44,6 +51,7 @@ def define_agents():
         goal='Hiba esetén döntsd el: kódjavítás vagy tesztkorrekció kell.',
         backstory='Rendszerszintű elemző vagy, aki megakadályozza a felejtést és a felesleges köröket.',
         llm=kodolo_llm,
+        tools=[search_tool],
         verbose=True,
         max_rpm=3
     )
@@ -53,6 +61,7 @@ def define_agents():
         goal='Sérülékenységvizsgálat és biztonsági jóváhagyás.',
         backstory='Etikus hacker vagy, aki az utolsó védelmi vonalat jelenti.',
         llm=kodolo_llm,
+        tools=[search_tool],
         verbose=True,
         max_rpm=2
     )

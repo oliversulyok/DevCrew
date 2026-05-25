@@ -115,6 +115,9 @@ services:
     volumes:
       - ./dev_crew/app:/app
       - ./dev_crew/project_state:/app/project_state
+      - ./hf_cache:/root/.cache/huggingface
+    networks:
+      - ai_network
     env_file:
       - .env
     stdin_open: true

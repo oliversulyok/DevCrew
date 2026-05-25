@@ -2,3 +2,6 @@ crewai
 langchain_openai
 python-dotenv
 litellm
+chromadb
+sentence-transformers
+langchain-community

@@ -8,7 +8,7 @@ load_dotenv()
 architekt_llm = ChatOpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=os.getenv("OPENROUTER_API_KEY"),
-    model_name="openrouter/qwen/qwen3.6-plus-preview:free",
+    model_name="openrouter/nvidia/nemotron-3-super-120b-a12b:free",
     max_retries=10,
 )
 
@@ -16,7 +16,7 @@ architekt_llm = ChatOpenAI(
 kodolo_llm = ChatOpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=os.getenv("OPENROUTER_API_KEY"),
-    model="openrouter/stepfun/step-3.5-flash:free",
+    model="openrouter/nvidia/nemotron-3-super-120b-a12b:free",
     max_retries=10,
 )
 
@@ -24,6 +24,6 @@ kodolo_llm = ChatOpenAI(
 olcso_llm = ChatOpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=os.getenv("OPENROUTER_API_KEY"),
-    model="openrouter/nvidia/nemotron-3-nano-30b-a3b:free",
+    model="openrouter/openai/gpt-oss-20b:free",
     max_retries=10,
 )
