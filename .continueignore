@@ -1,0 +1,10 @@
+/.git
+/project_state
+/node_modules
+/.venv
+venv
+*.pyc
+data/
+*.sqlite
+*.db
+.env

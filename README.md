@@ -66,3 +66,20 @@ A generált fájlok a `project_state/<projekt_nev>/` mappába kerülnek:
 - `src/`: Forráskód.
 - `test/`: Teszt kódok és riportok.
 - `summary.json`: Iterációs napló.
+
+## 🔁 continue.dev munkaterület-beállítások
+
+Ez a projekt tartalmaz egy alapértelmezett munkaterületi konfigurációt a continue.dev számára. A következő fájlok jöttek létre a projekt gyökérkönyvtárában:
+
+- `.continue/config.yaml` - munkaterületi sablon (nem tartalmaz API kulcsokat).
+- `.continue/.continuerc.json` - egyszerű indexelési szabályok.
+- `.continueignore` - kizárási minták, hogy ne indexeljünk nagy vagy érzékeny fájlokat.
+- `.vscode/settings.json` és `.vscode/extensions.json` - javasolt beállítások és kiterjesztések.
+
+Fontos: az API kulcsokat NEM tároljuk a repo-ban. Állítsd be az `OPENROUTER_API_KEY` környezeti változót, vagy használd a VS Code Secrets kezelőt. Példa (Linux/macOS):
+
+```bash
+export OPENROUTER_API_KEY="sk-..."
+```
+
+Ha szeretnéd, másolhatom a `~/.continue/config.yaml` fájlodat a projektbe és automatikusan kitörlöm vagy helyettesítem a kulcsokat, de alapértelmezés szerint nem viszünk át érzékeny adatot.

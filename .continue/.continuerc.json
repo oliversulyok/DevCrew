@@ -1,0 +1,7 @@
+{
+  "index": {
+    "include": ["dev_crew/**"],
+    "exclude": ["project_state/**", ".git/**"]
+  },
+  "notes": "Workspace overrides - adjust as needed. Do not commit secrets."
+}
